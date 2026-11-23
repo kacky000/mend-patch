@@ -182,8 +182,21 @@ function mustExist(t: Tree, p: string): string {
   if (text === null) throw new Failure('missing', p);
   return text;
 }
+/** Whether something other than a file holds the path on disk (a directory), or a file sits where a parent must be. */
+function blocked(t: Tree, p: string): boolean {
+  if (!t.now.has(p)) {
+    try {
+      if (statSync(p).isDirectory()) return true;
+    } catch {
+      // nothing there
+    }
+  }
+  const segs = p.split('/');
+  for (let k = 1; k < segs.length; k += 1) if (t.read(segs.slice(0, k).join('/')) !== null) return true;
+  return false;
+}
 function mustNotExist(t: Tree, p: string): void {
-  if (t.read(p) !== null) throw new Failure('exists', p);
+  if (t.read(p) !== null || blocked(t, p)) throw new Failure('exists', p);
 }
 function moveFile(t: Tree, from: string, to: string, text: string): void {
   t.put(from, null);
